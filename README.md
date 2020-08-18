@@ -1,2 +1,2 @@
-# capra
-Dive planning library. Currently supports mixed-gas open circuit dives.
+#capra-core
+Diver decompression library. Includes ZHL-16 (B/C)
