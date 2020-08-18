@@ -12,7 +12,6 @@ keywords = ["scuba", "diving", "decompression"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-time = { git = "https://github.com/the-emerald/time.git" , branch = "main", default-features = false }
 num-traits = { version = "^0.2.12", default-features = false }
 thiserror = { version = "^1.0.20", optional = true }
 serde = { version = "^1.0.114", optional = true}
@@ -20,5 +19,5 @@ serde = { version = "^1.0.114", optional = true}
 [features]
 default = ["std", "use-thiserror"]
 use-thiserror = []
-std = ["time/default", "num-traits/default"]
-use-serde = ["serde/derive", "time/serde"]
+std = ["num-traits/default"]
+use-serde = ["serde/derive"]

@@ -9,7 +9,7 @@ use crate::deco::zhl16::util::{
 };
 use crate::deco::{TISSUE_COUNT, WATER_VAPOUR_PRESSURE};
 use core::f64::consts::{E, LN_2};
-use time::Duration;
+use core::time::Duration;
 
 #[cfg(feature = "std")]
 use crate::deco::deco_algorithm::DecoAlgorithm;
@@ -160,7 +160,7 @@ impl ZHL16 {
             rate = segment.ascent_rate()
         }
 
-        let t = segment.time().whole_seconds() as f64 / 60.0;
+        let t = segment.time().as_secs() as f64 / 60.0;
 
         // Load nitrogen tissue compartments
         for (idx, val) in self.tissue.p_n2.iter_mut().enumerate() {
@@ -214,7 +214,7 @@ impl ZHL16 {
                 + (pi - po)
                     * (1.0
                         - (2.0_f64
-                            .powf(-1.0 * segment.time().whole_minutes() as f64 / self.n2_hl[idx])));
+                            .powf(-1.0 * (segment.time().as_secs() / 60) as f64 / self.n2_hl[idx])));
             *val = p;
             self.tissue.p_t[idx] = p;
         }
@@ -226,7 +226,7 @@ impl ZHL16 {
                 + (pi - po)
                     * (1.0
                         - (2.0_f64
-                            .powf(-1.0 * segment.time().whole_minutes() as f64 / self.he_hl[idx])));
+                            .powf(-1.0 * (segment.time().as_secs() / 60) as f64 / self.he_hl[idx])));
             *val = p;
             self.tissue.p_t[idx] += p;
         }
@@ -302,7 +302,7 @@ impl ZHL16 {
                 SegmentType::DecoStop,
                 stop_depth,
                 stop_depth,
-                Duration::minutes(stop_time as i64),
+                Duration::from_secs((stop_time * 60) as u64),
                 ascent_rate,
                 descent_rate,
             )
@@ -320,7 +320,7 @@ impl ZHL16 {
             SegmentType::DecoStop,
             stop_depth,
             stop_depth,
-            Duration::minutes(stop_time as i64),
+            Duration::from_secs((stop_time * 60) as u64),
             ascent_rate,
             descent_rate,
         )
@@ -337,7 +337,7 @@ impl ZHL16 {
                 SegmentType::NoDeco,
                 virtual_zhl16.diver_depth,
                 virtual_zhl16.diver_depth,
-                Duration::minutes(ndl),
+                Duration::from_secs(ndl * 60),
                 0,
                 0,
             )
@@ -353,7 +353,7 @@ impl ZHL16 {
                         SegmentType::NoDeco,
                         self.diver_depth,
                         self.diver_depth,
-                        Duration::seconds(core::i64::MAX),
+                        Duration::from_secs(core::u64::MAX),
                         0,
                         0,
                     )
@@ -366,7 +366,7 @@ impl ZHL16 {
                 SegmentType::NoDeco,
                 self.diver_depth,
                 self.diver_depth,
-                Duration::minutes(ndl),
+                Duration::from_secs(ndl * 60),
                 0,
                 0,
             )

@@ -8,12 +8,12 @@ use crate::common::gas::Gas;
 pub fn otu(segment: &DiveSegment, gas: &Gas) -> f64 {
     match segment.segment_type() {
         SegmentType::AscDesc => ascent_descent_constant(
-            segment.time().whole_seconds() as usize,
+            segment.time().as_secs() as usize,
             gas.pp_o2(segment.start_depth(), 10.0),
             gas.pp_o2(segment.end_depth(), 10.0),
         ),
         _ => constant_depth(
-            segment.time().whole_seconds() as usize,
+            segment.time().as_secs() as usize,
             gas.pp_o2(segment.start_depth(), 10.0),
         ),
     }

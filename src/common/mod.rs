@@ -2,7 +2,7 @@
 
 use num_traits::cast::FromPrimitive;
 use core::isize;
-use time::Duration;
+use core::time::Duration;
 
 /// A default, placeholder descent rate (measured in m min^-1).
 pub const DEFAULT_DESCENT_RATE: isize = 30;
@@ -56,7 +56,7 @@ pub fn mtr_bar(mtr: f64, metres_per_bar: f64) -> f64 {
 pub fn time_taken(rate: isize, depth_1: usize, depth_2: usize) -> Duration {
     let delta_depth = ((depth_1 as isize) - (depth_2 as isize)).abs();
     let rate_seconds = rate.abs() as f64 / 60.0;
-    Duration::seconds(
-        i64::from_f64(delta_depth as f64 / rate_seconds).expect("overflow in time taken"),
+    Duration::from_secs(
+        u64::from_f64(delta_depth as f64 / rate_seconds).expect("overflow in time taken"),
     )
 }

@@ -1,7 +1,7 @@
 use crate::common::dive_segment::DiveSegmentError::IncorrectSegmentTypeError;
 use crate::common::dive_segment::SegmentType::AscDesc;
 use crate::common::mtr_bar;
-use time::Duration;
+use core::time::Duration;
 
 /// Represents errors that occur while working with DiveSegments.
 #[cfg_attr(feature = "use-thiserror", derive(thiserror::Error))]
@@ -127,6 +127,6 @@ impl DiveSegment {
             _ => mtr_bar(self.end_depth() as f64, metres_per_bar),
         };
 
-        (pressure * (self.time().as_seconds_f64() / 60.0) * sac_rate as f64) as usize
+        (pressure * (self.time().as_secs_f64() / 60.0) * sac_rate as f64) as usize
     }
 }
