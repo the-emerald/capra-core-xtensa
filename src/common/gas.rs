@@ -1,16 +1,14 @@
 use crate::common::mtr_bar;
 
 /// Represents errors that occur while working with Gases.
-#[cfg_attr(feature = "use-thiserror", derive(thiserror::Error))]
 #[derive(Debug)]
 pub enum GasError {
-    #[cfg_attr(feature = "use-thiserror", error("gas does not have total fraction of 1.0"))]
     /// The sum of all percentage gas fractions does not add up to 100.
     FractionError,
 }
 
 /// A gas mix used in a dive.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "use-serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Gas {
     /// Percentage fraction of oxygen in the mix.

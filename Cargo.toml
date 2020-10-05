@@ -12,12 +12,18 @@ keywords = ["scuba", "diving", "decompression"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-num-traits = { version = "^0.2.12", default-features = false }
-thiserror = { version = "^1.0.20", optional = true }
 serde = { version = "^1.0.114", optional = true}
+libm = { git = "https://github.com/the-emerald/libm" }
 
 [features]
-default = ["std", "use-thiserror"]
-use-thiserror = []
-std = ["num-traits/default"]
+default = []
 use-serde = ["serde/derive"]
+
+[lib]
+crate-type = ["staticlib"]
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"

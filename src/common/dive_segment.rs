@@ -1,19 +1,18 @@
 use crate::common::dive_segment::DiveSegmentError::IncorrectSegmentTypeError;
 use crate::common::dive_segment::SegmentType::AscDesc;
 use crate::common::mtr_bar;
+use core::result::Result;
 use core::time::Duration;
 
 /// Represents errors that occur while working with DiveSegments.
-#[cfg_attr(feature = "use-thiserror", derive(thiserror::Error))]
 #[derive(Debug)]
 pub enum DiveSegmentError {
-    #[cfg_attr(feature = "use-thiserror", error("segment type and start/end depths are inconsistent"))]
     /// SegmentType supplied to create a DiveSegment were inconsistent with its parameters.
     IncorrectSegmentTypeError,
 }
 
 /// Represents different types of DiveSegments possible.
-#[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
+#[derive(Copy, Clone, PartialOrd, PartialEq)]
 #[cfg_attr(feature = "use-serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum SegmentType {
     /// Segment represents a no decompression limit.
@@ -27,7 +26,7 @@ pub enum SegmentType {
 }
 
 /// The atomic unit of a dive. Every dive can be represented by a list of DiveSegments.
-#[derive(Debug, Copy, Clone)]
+#[derive(Copy, Clone)]
 #[cfg_attr(feature = "use-serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct DiveSegment {
     /// Type of this segment. See [`SegmentType`].

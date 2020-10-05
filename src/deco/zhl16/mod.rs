@@ -9,10 +9,9 @@ use crate::deco::zhl16::util::{
 };
 use crate::deco::{TISSUE_COUNT, WATER_VAPOUR_PRESSURE};
 use core::f64::consts::{E, LN_2};
+use core::intrinsics::ceilf64;
+use core::intrinsics::powf64;
 use core::time::Duration;
-
-#[cfg(feature = "std")]
-use crate::deco::deco_algorithm::DecoAlgorithm;
 
 pub mod util;
 pub mod variant;
@@ -201,8 +200,11 @@ impl ZHL16 {
         r: f64,
         k: f64,
     ) -> f64 {
-        initial_ambient_pressure + r * (time - (1.0 / k))
-            - ((initial_ambient_pressure - initial_pressure - (r / k)) * E.powf(-1.0 * k * time))
+        unsafe {
+            initial_ambient_pressure + r * (time - (1.0 / k))
+                - ((initial_ambient_pressure - initial_pressure - (r / k))
+                    * powf64(E, -1.0 * k * time))
+        }
     }
 
     /// Add a segment without depth change according to the Schreiner Equation.
@@ -210,11 +212,14 @@ impl ZHL16 {
         for (idx, val) in self.tissue.p_n2.iter_mut().enumerate() {
             let po = *val;
             let pi = ZHL16::compensated_pressure(segment.end_depth(), metres_per_bar) * gas.fr_n2();
-            let p = po
-                + (pi - po)
+            let p = unsafe {
+                po + (pi - po)
                     * (1.0
-                        - (2.0_f64
-                            .powf(-1.0 * (segment.time().as_secs() / 60) as f64 / self.n2_hl[idx])));
+                        - (powf64(
+                            2.0_f64,
+                            -1.0 * (segment.time().as_secs() / 60) as f64 / self.n2_hl[idx],
+                        )))
+            };
             *val = p;
             self.tissue.p_t[idx] = p;
         }
@@ -222,11 +227,14 @@ impl ZHL16 {
         for (idx, val) in self.tissue.p_he.iter_mut().enumerate() {
             let po = *val;
             let pi = ZHL16::compensated_pressure(segment.end_depth(), metres_per_bar) * gas.fr_he();
-            let p = po
-                + (pi - po)
+            let p = unsafe {
+                po + (pi - po)
                     * (1.0
-                        - (2.0_f64
-                            .powf(-1.0 * (segment.time().as_secs() / 60) as f64 / self.he_hl[idx])));
+                        - (powf64(
+                            2.0_f64,
+                            -1.0 * (segment.time().as_secs() / 60) as f64 / self.he_hl[idx],
+                        )))
+            };
             *val = p;
             self.tissue.p_t[idx] += p;
         }
@@ -278,9 +286,11 @@ impl ZHL16 {
         gas: &Gas,
         metres_per_bar: f64,
     ) -> DiveSegment {
-        let stop_depth = (3.0
-            * ((common::bar_mtr(self.find_ascent_ceiling(None), metres_per_bar) / 3.0).ceil()))
-            as usize; // Find the next stop depth rounded to 3m
+        let stop_depth = unsafe {
+            (3.0 * (ceilf64(common::bar_mtr(self.find_ascent_ceiling(None), metres_per_bar) / 3.0)))
+                as usize
+        };
+        // Find the next stop depth rounded to 3m
         let mut stop_time: usize = 0;
         let mut in_limit: bool = false;
         while !in_limit {
@@ -381,78 +391,14 @@ impl ZHL16 {
 
     fn add_segment(&mut self, segment: &DiveSegment, gas: &Gas, metres_per_bar: f64) {
         match segment.segment_type() {
-            SegmentType::AscDesc => {
-                self.add_depth_change(segment, gas, metres_per_bar)
-            },
+            SegmentType::AscDesc => self.add_depth_change(segment, gas, metres_per_bar),
             SegmentType::DecoStop => {
                 self.add_bottom_segment(segment, gas, metres_per_bar);
                 self.update_first_deco_depth(segment.start_depth());
-            },
+            }
             _ => {
                 self.add_bottom_segment(segment, gas, metres_per_bar);
             }
         }
-    }
-}
-
-#[cfg(feature = "std")]
-impl DecoAlgorithm for ZHL16 {
-    fn add_dive_segment(&mut self, segment: &DiveSegment, gas: &Gas, metres_per_bar: f64) {
-        self.add_segment(segment, gas, metres_per_bar);
-    }
-
-    fn surface(
-        &mut self,
-        ascent_rate: isize,
-        descent_rate: isize,
-        gas: &Gas,
-        metres_per_bar: f64,
-    ) -> Vec<DiveSegment> {
-        let mut stops: Vec<DiveSegment> = Vec::new();
-        // If the ascent ceiling with a GFH override is less than 1.0 then we're in NDL times
-        if self.find_ascent_ceiling(Some(self.gf_high)) < 1.0 {
-            match self.ndl(gas, metres_per_bar) {
-                Some(t) => stops.push(t),
-                None => panic!("ascent ceiling is < 1.0 but NDL was found"),
-            };
-            return stops;
-        }
-
-        let mut last_depth = self.diver_depth;
-        while self.find_ascent_ceiling(None) > 1.0 {
-            // Find the next stop and apply it.
-            let stop = self.next_stop(ascent_rate, descent_rate, gas, metres_per_bar);
-            self.update_first_deco_depth(stop.end_depth());
-
-            // This is done because of the nature of segment processing!
-            // If a diver has just ascended from 18m to 15m, for example, their depth would be
-            // at 15m, yet the next stop will be 15m. In that case, do not generate an AscDesc
-            // segment.
-            if last_depth != stop.end_depth() {
-                let depth_change_segment = DiveSegment::new(
-                    SegmentType::AscDesc,
-                    last_depth,
-                    stop.end_depth(),
-                    time_taken(ascent_rate, stop.end_depth(), last_depth),
-                    ascent_rate,
-                    descent_rate,
-                )
-                .unwrap();
-                self.add_dive_segment(&depth_change_segment, gas, metres_per_bar);
-                stops.push(depth_change_segment);
-            }
-
-            self.add_dive_segment(&stop, gas, metres_per_bar);
-            self.update_first_deco_depth(stop.end_depth());
-
-            last_depth = stop.end_depth();
-
-            stops.push(stop);
-        }
-        stops
-    }
-
-    fn get_tissue(&self) -> Tissue {
-        self.tissue
     }
 }

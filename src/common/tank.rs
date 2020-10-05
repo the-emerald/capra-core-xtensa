@@ -1,7 +1,7 @@
 use crate::common::gas::Gas;
 
 /// A diving cylinder filled with some gas mix with some volume and service pressure.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "use-serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Tank {
     /// Gas mix currently inside the tank.
