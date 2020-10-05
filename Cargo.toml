@@ -13,7 +13,7 @@ keywords = ["scuba", "diving", "decompression"]
 
 [dependencies]
 serde = { version = "^1.0.114", optional = true}
-libm = { git = "https://github.com/the-emerald/libm" }
+#libm = { git = "https://github.com/the-emerald/libm" }
 once_cell = { version = "1.4.1", default-features = false }
 
 [features]

@@ -75,8 +75,7 @@ pub extern "C" fn set_gfh(high: usize) {
 }
 
 #[no_mangle]
-pub extern "C" fn tick_segment(gas_fo2: usize, gas_fn2: usize, depth: usize, tick: u64) {
-    let gas = Gas::new(gas_fo2, gas_fn2, 100 - gas_fo2 - gas_fn2).unwrap();
+pub extern "C" fn tick_segment(gas: &Gas, depth: usize, tick: u64) {
     let segment = DiveSegment::new(
         SegmentType::DiveSegment,
         depth,
@@ -90,7 +89,8 @@ pub extern "C" fn tick_segment(gas_fo2: usize, gas_fn2: usize, depth: usize, tic
     }
 }
 
-pub extern "C" fn get_next_stop_depth(gas: &Gas, ascent_rate: isize, descent_rate: isize) -> CDiveSegment {
+#[no_mangle]
+pub extern "C" fn get_next_stop(gas: &Gas, ascent_rate: isize, descent_rate: isize) -> CDiveSegment {
     unsafe {
         if DECO.find_ascent_ceiling(Some(DECO.gfh())) < 1.0 {
             match DECO.ndl(gas, 1000.0) {
