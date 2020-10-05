@@ -14,6 +14,7 @@ pub enum DiveSegmentError {
 /// Represents different types of DiveSegments possible.
 #[derive(Copy, Clone, PartialOrd, PartialEq)]
 #[cfg_attr(feature = "use-serde", derive(serde::Serialize, serde::Deserialize))]
+#[repr(C)]
 pub enum SegmentType {
     /// Segment represents a no decompression limit.
     NoDeco,
@@ -28,6 +29,7 @@ pub enum SegmentType {
 /// The atomic unit of a dive. Every dive can be represented by a list of DiveSegments.
 #[derive(Copy, Clone)]
 #[cfg_attr(feature = "use-serde", derive(serde::Serialize, serde::Deserialize))]
+#[repr(C)]
 pub struct DiveSegment {
     /// Type of this segment. See [`SegmentType`].
     segment_type: SegmentType,

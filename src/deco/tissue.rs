@@ -6,6 +6,7 @@ use crate::gas;
 /// and another set for helium.
 #[derive(Debug, Copy, Clone)]
 #[cfg_attr(feature = "use-serde", derive(serde::Serialize, serde::Deserialize))]
+#[repr(C)]
 pub struct Tissue {
     // Tissue states
     pub(crate) p_n2: [f64; TISSUE_COUNT],

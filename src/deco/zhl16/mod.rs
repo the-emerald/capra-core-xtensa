@@ -389,7 +389,7 @@ impl ZHL16 {
         self.tissue
     }
 
-    fn add_segment(&mut self, segment: &DiveSegment, gas: &Gas, metres_per_bar: f64) {
+    pub(crate) fn add_segment(&mut self, segment: &DiveSegment, gas: &Gas, metres_per_bar: f64) {
         match segment.segment_type() {
             SegmentType::AscDesc => self.add_depth_change(segment, gas, metres_per_bar),
             SegmentType::DecoStop => {
@@ -401,4 +401,22 @@ impl ZHL16 {
             }
         }
     }
+
+    // Special functions
+    pub(crate) fn change_gfl(&mut self, new: usize) {
+        self.gf_low = (new as f64) / 100.0
+    }
+
+    pub(crate) fn change_gfh(&mut self, new: usize) {
+        self.gf_high = (new as f64) / 100.0
+    }
+
+    pub(crate) fn gfl(&self) -> f64 {
+        self.gf_low
+    }
+
+    pub(crate) fn gfh(&self) -> f64 {
+        self.gf_high
+    }
+
 }
