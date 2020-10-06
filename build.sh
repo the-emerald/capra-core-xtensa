@@ -1,2 +1,2 @@
 source setenv
-xargo build --target xtensa-esp32-none-elf
+cargo xbuild --target xtensa-esp32-none-elf --release
