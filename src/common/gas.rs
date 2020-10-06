@@ -10,6 +10,7 @@ pub enum GasError {
 /// A gas mix used in a dive.
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "use-serde", derive(serde::Serialize, serde::Deserialize))]
+#[repr(C)]
 pub struct Gas {
     /// Percentage fraction of oxygen in the mix.
     o2: usize,

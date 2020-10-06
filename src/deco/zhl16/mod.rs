@@ -26,30 +26,31 @@ pub use variant::Variant;
 /// stops with Gradient Factors requires some side effects to be stored inside the struct.
 #[derive(Debug, Copy, Clone)]
 #[cfg_attr(feature = "use-serde", derive(serde::Serialize, serde::Deserialize))]
+#[repr(C)]
 pub struct ZHL16 {
     /// Current tissue model of the diver.
-    tissue: Tissue,
+    pub(crate) tissue: Tissue,
     /// Current depth of the diver.
-    diver_depth: usize,
+    pub(crate) diver_depth: usize,
     /// Nitrogen A-values.
-    n2_a: [f64; TISSUE_COUNT],
+    pub(crate) n2_a: [f64; TISSUE_COUNT],
     /// Nitrogen B-values.
-    n2_b: [f64; TISSUE_COUNT],
+    pub(crate) n2_b: [f64; TISSUE_COUNT],
     /// Nitrogen half-lives.
-    n2_hl: [f64; TISSUE_COUNT],
+    pub(crate) n2_hl: [f64; TISSUE_COUNT],
     /// Helium A-values.
-    he_a: [f64; TISSUE_COUNT],
+    pub(crate) he_a: [f64; TISSUE_COUNT],
     /// Helium B-values.
-    he_b: [f64; TISSUE_COUNT],
+    pub(crate) he_b: [f64; TISSUE_COUNT],
     /// Helium half-lives.
-    he_hl: [f64; TISSUE_COUNT],
+    pub(crate) he_hl: [f64; TISSUE_COUNT],
 
-    first_deco_depth: Option<usize>,
+    pub(crate) first_deco_depth: usize,
 
     /// GF Low value
-    gf_low: f64,
+    pub(crate) gf_low: f64,
     /// GF High value
-    gf_high: f64,
+    pub(crate) gf_high: f64,
 }
 
 impl ZHL16 {
@@ -86,7 +87,7 @@ impl ZHL16 {
             he_b,
             he_hl,
 
-            first_deco_depth: None,
+            first_deco_depth: usize::MAX,
             gf_low: gf_low as f64 / 100.0,
             gf_high: gf_high as f64 / 100.0,
         }
@@ -128,24 +129,23 @@ impl ZHL16 {
     /// Update the first deco depth of the diver. This is used to calculate the GF any given point
     /// of the decompression schedule.
     fn update_first_deco_depth(&mut self, deco_depth: usize) {
-        match self.first_deco_depth {
-            Some(_t) => {} // If it's already set then don't touch it
-            None => self.first_deco_depth = Some(deco_depth), // Otherwise update it
+        if self.first_deco_depth == usize::MAX {
+            self.first_deco_depth = deco_depth;
         }
     }
 
     /// Find the gradient factor to use at a given depth during decompression
     fn gf_at_depth(&self, depth: usize) -> f64 {
-        match self.first_deco_depth {
-            Some(t) => {
-                // Only calculate the gradient factor if we're below the surface.
-                if depth > 0 {
-                    return self.gf_high
-                        + ((self.gf_high - self.gf_low) / (0.0 - t as f64)) * (depth as f64);
-                }
-                self.gf_high // We must be on the surface, by definition use gf_high
+        if self.first_deco_depth != usize::MAX {
+            // Only calculate the gradient factor if we're below the surface.
+            if depth > 0 {
+                return self.gf_high
+                    + ((self.gf_high - self.gf_low) / (0.0 - self.first_deco_depth as f64)) * (depth as f64);
             }
-            None => self.gf_high, // We haven't started decompression yet. use gf_high by definition.
+            self.gf_high // We must be on the surface, by definition use gf_high
+        }
+        else {
+            self.gf_high // We haven't started decompression yet. use gf_high by definition.
         }
     }
 
@@ -246,9 +246,13 @@ impl ZHL16 {
         let mut ceilings: [f64; TISSUE_COUNT] = [0.0; TISSUE_COUNT];
         let gf = match gf_override {
             Some(t) => t,
-            None => match self.first_deco_depth {
-                Some(_) => self.gf_at_depth(self.diver_depth),
-                None => self.gf_low,
+            None => {
+                if self.first_deco_depth != usize::MAX {
+                    self.gf_at_depth(self.first_deco_depth)
+                }
+                else {
+                    self.gf_low
+                }
             },
         };
 
@@ -363,7 +367,7 @@ impl ZHL16 {
                         SegmentType::NoDeco,
                         self.diver_depth,
                         self.diver_depth,
-                        Duration::from_secs(core::u64::MAX),
+                        Duration::from_secs(999), // Use 999 here, don't want number to get too large
                         0,
                         0,
                     )

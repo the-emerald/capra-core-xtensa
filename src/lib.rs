@@ -7,19 +7,16 @@ use core::intrinsics;
 use core::panic::PanicInfo;
 
 use crate::common::{DiveSegment, Gas, SegmentType};
-use crate::deco::zhl16::ZHL16;
+use crate::deco::zhl16::util::{ZHL16C_N2_A, ZHL16C_N2_B, ZHL16C_N2_HALFLIFE, ZHL16C_HE_A, ZHL16C_HE_B, ZHL16C_HE_HALFLIFE};
 use crate::deco::Tissue;
 use crate::deco::zhl16::variant::Variant::C;
-use once_cell::unsync::Lazy;
-use core::cell::RefCell;
 use core::time::Duration;
 use crate::common::dive_segment::SegmentType::DecoStop;
-use core::hint::unreachable_unchecked;
+use crate::deco::zhl16::ZHL16;
 
 pub mod common;
 pub mod deco;
 
-#[derive(Copy, Clone)]
 #[repr(C)]
 pub struct CDiveSegment {
     /// Type of this segment. See [`SegmentType`].
@@ -49,33 +46,36 @@ impl From<DiveSegment> for CDiveSegment {
     }
 }
 
-static mut DECO: Lazy<ZHL16> = Lazy::new(||
-    ZHL16::new_by_variant(Tissue::default(), 100, 100, C)
-);
-
 #[panic_handler]
 #[allow(unused_unsafe)]
-fn panic(_info: &PanicInfo) -> ! {
+fn panic(_: &PanicInfo) -> ! {
     unsafe { intrinsics::abort() }
 }
 
 #[no_mangle]
-pub extern "C" fn initialise() {
-    unsafe { Lazy::force(&DECO); }
+pub extern "C" fn initialise(deco: &mut ZHL16) {
+    deco.tissue = Tissue {
+        p_n2: [0.7405; 16],
+        p_he: [0.0; 16],
+        p_t: [0.7405; 16]
+    };
+
+    deco.n2_a = ZHL16C_N2_A;
+    deco.n2_b = ZHL16C_N2_B;
+    deco.n2_hl = ZHL16C_N2_HALFLIFE;
+
+    deco.he_a = ZHL16C_HE_A;
+    deco.he_b = ZHL16C_HE_B;
+    deco.he_hl = ZHL16C_HE_HALFLIFE;
+
+    deco.gf_low = 1.0;
+    deco.gf_high = 1.0;
+
+    deco.first_deco_depth = usize::MAX;
 }
 
 #[no_mangle]
-pub extern "C" fn set_gfl(low: usize) {
-    unsafe { DECO.change_gfl(low) }
-}
-
-#[no_mangle]
-pub extern "C" fn set_gfh(high: usize) {
-    unsafe { DECO.change_gfh(high) }
-}
-
-#[no_mangle]
-pub extern "C" fn tick_segment(gas: &Gas, depth: usize, tick: u64) {
+pub extern "C" fn tick_segment(deco: &mut ZHL16, gas: &Gas, depth: usize, tick: u64) {
     let segment = DiveSegment::new(
         SegmentType::DiveSegment,
         depth,
@@ -84,20 +84,16 @@ pub extern "C" fn tick_segment(gas: &Gas, depth: usize, tick: u64) {
         -5, 5       // Placeholder value - this is a constant segment
     ).unwrap();
 
-    unsafe {
-        DECO.add_segment(&segment, &gas, 1000.0);
-    }
+    deco.add_segment(&segment, &gas, 10.0);
 }
 
 #[no_mangle]
-pub extern "C" fn get_next_stop(gas: &Gas, ascent_rate: isize, descent_rate: isize) -> CDiveSegment {
-    unsafe {
-        if DECO.find_ascent_ceiling(Some(DECO.gfh())) < 1.0 {
-            match DECO.ndl(gas, 1000.0) {
-                None => { unreachable_unchecked(); }
-                Some(t) => { return t.into(); }
-            }
+pub extern "C" fn get_next_stop(deco: &ZHL16, gas: &Gas, ascent_rate: isize, descent_rate: isize) -> CDiveSegment {
+    if deco.find_ascent_ceiling(Some(deco.gfh())) < 1.0 {
+        match deco.ndl(gas, 1000.0) {
+            None => { unreachable!(); }
+            Some(t) => { return t.into(); }
         }
-        DECO.next_stop(ascent_rate, descent_rate, gas, 1000.0).into()
     }
+    deco.next_stop(ascent_rate, descent_rate, gas, 10.0).into()
 }

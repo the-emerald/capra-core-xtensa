@@ -11,10 +11,14 @@ keywords = ["scuba", "diving", "decompression"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+# Allow overriding of `memcpy`, `memset`, etc.
+[package.metadata.cargo-xbuild]
+memcpy = false
+
 [dependencies]
 serde = { version = "^1.0.114", optional = true}
 #libm = { git = "https://github.com/the-emerald/libm" }
-once_cell = { version = "1.4.1", default-features = false }
+#once_cell = { version = "1.4.1", default-features = false }
 
 [features]
 default = []
@@ -27,5 +31,6 @@ crate-type = ["staticlib"]
 panic = "abort"
 
 [profile.release]
+debug = true
 panic = "abort"
 codegen-units = 1
